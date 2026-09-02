@@ -1,0 +1,124 @@
+# keyboards
+
+Two split keyboards, deliberately kept in sync so muscle memory transfers
+between them.
+
+| Board | Firmware | Config |
+|---|---|---|
+| Corne (CorneKBH, wireless) | ZMK | [`zmk-config-cornekbh/`](https://github.com/arturo-mayorga/zmk-config-cornekbh) |
+| Moonlander Mark I rev B | QMK (ZSA fork) | [`zsa-config-monnlander/`](https://github.com/arturo-mayorga/zsa-config-monnlander) |
+
+Each board's configuration lives in its own repo. This repo tracks both as
+submodules, so a commit here names the exact **pair** of configurations that
+were in sync at that moment — which is what makes parity checkable after the
+fact rather than merely intended.
+
+## Why
+
+Two keyboards with different layouts means two sets of habits, and every switch
+between them costs a re-adjustment. So rather than let each board drift toward
+whatever its configurator makes easy, both implement one shared layout.
+
+The Corne is the reference. The Moonlander mirrors it. Where the Moonlander has
+keys the Corne lacks — its number row, inner columns, bottom row — those keys
+carry extra functions, but never ones that contradict a Corne binding.
+
+## Clone
+
+Submodules, so:
+
+```sh
+git clone --recurse-submodules https://github.com/arturo-mayorga/keyboards.git
+```
+
+Already cloned without them:
+
+```sh
+git submodule update --init --recursive
+```
+
+## The shared layout
+
+Full contract in [`layout/SPEC.md`](layout/SPEC.md). In brief:
+
+**Base layer is alphas only.** Numbers, symbols and navigation live on layers
+reached by holding a thumb key. Layer access is momentary everywhere — no
+toggles.
+
+| # | Layer | Held with |
+|---|---|---|
+| 0 | Base | — |
+| 1 | NavNum | Space (right thumb) |
+| 2 | Symbols | left thumb |
+| 3 | System | layers 1 + 2 together |
+| 4 | Extra (mouse) | right pinky |
+
+**Home-row mods are minimal**: only `A` and `;` hold for Shift. Ctrl, GUI and
+Alt get dedicated keys.
+
+**Symbols come mostly from combos** — 17 two-key rolls, nearly all vertical
+finger pairs on the same column:
+
+| | | | |
+|---|---|---|---|
+| W+S `@` | E+D `#` | R+F `$` | T+G `%` |
+| F+V `=` | S+X `\` | A+B `Esc` | D+L `Del` |
+| U+J `+` | I+K `*` | H+N `_` | J+M `−` |
+| K+, `/` | M+, `[` | ,+. `]` | |
+| J+K `(` → `<` | K+L `)` → `>` | | |
+
+**Layer feedback differs by necessity.** The Corne shows the active layer on its
+nice!view screen; the Moonlander has no screen, so it lights the whole board a
+distinct colour per layer — white, green, blue, red, yellow for layers 0–4.
+
+Differences that are deliberate are recorded in
+[`layout/divergences.md`](layout/divergences.md). Anything else that differs
+between the two configs is a bug.
+
+## Working on a layout
+
+Change the Corne first, mirror to the Moonlander, then commit each submodule
+and the pointer bump here. Details, plus a ZMK→QMK translation table, in the
+`keyboard-parity` skill.
+
+### Moonlander
+
+```sh
+qmk compile -kb zsa/moonlander/revb -km ZQgpz
+```
+
+Then press the physical reset button and:
+
+```sh
+dfu-util -d 3297:2003 -a 0 -s 0x08002000:leave -D zsa_moonlander_revb_ZQgpz.bin
+```
+
+Two things that are easy to lose a morning to:
+
+- **`wally-cli` cannot flash this board.** It expects the older STM32 DFU id
+  `0483:df11`; this Moonlander has ZSA's ignition bootloader, `3297:2003`, and
+  wally bails out before writing. Use `dfu-util`.
+- **GCC 16 breaks QMK's bootloader-jump assembly.** `tools/patches/` has the
+  one-line constraint fix. It applies to the QMK clone, not to this repo, so a
+  `git pull` there silently reverts it and builds start failing again.
+
+First-time toolchain setup: [`tools/setup-toolchain.sh`](tools/setup-toolchain.sh).
+
+### Corne
+
+Firmware builds in GitHub Actions from `build.yaml`; copy the resulting `.uf2`
+to each half in bootloader mode. Small keymap edits can go through ZMK Studio
+over USB instead. `scripts/keymap_cheatsheet.py` regenerates
+[the visual keymap](zmk-config-cornekbh/docs/keymap.html) from the keymap source,
+so the docs cannot drift from the firmware.
+
+## Layout
+
+```
+CLAUDE.md              context for Claude Code, scoped to this directory
+.claude/skills/        board procedures — parity, moonlander, corne
+layout/SPEC.md         the normative shared contract
+layout/divergences.md  intentional differences
+tools/                 toolchain setup, patches
+docs/                  reference images
+```
