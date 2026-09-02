@@ -1,0 +1,13 @@
+diff --git i/keyboards/zsa/moonlander/moonlander.c w/keyboards/zsa/moonlander/moonlander.c
+index d0f1741..fc21b1c 100644
+--- i/keyboards/zsa/moonlander/moonlander.c
++++ w/keyboards/zsa/moonlander/moonlander.c
+@@ -492,7 +492,7 @@ __attribute__((weak)) void mcu_reset(void) {
+     SCB->AIRCR = APP_ADDRESS & 0xFFFF;
+ 
+     // Set the stack pointer to the applications stack pointer
+-    __asm__ volatile("msr msp, %0" ::"g"(*(volatile uint32_t *)APP_ADDRESS));
++    __asm__ volatile("msr msp, %0" ::"r"(*(volatile uint32_t *)APP_ADDRESS));
+ 
+     // Jump to the application
+     (*(void (**)())(APP_ADDRESS + 4))();

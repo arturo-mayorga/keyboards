@@ -1,0 +1,6 @@
+# QMK build artifacts land next to the source when compiled in-tree
+*.bin
+*.hex
+*.elf
+.build/
+__pycache__/

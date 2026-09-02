@@ -1,0 +1,6 @@
+[submodule "zmk-config-cornekbh"]
+	path = zmk-config-cornekbh
+	url = https://github.com/arturo-mayorga/zmk-config-cornekbh.git
+[submodule "zsa-config-monnlander"]
+	path = zsa-config-monnlander
+	url = https://github.com/arturo-mayorga/zsa-config-monnlander.git
