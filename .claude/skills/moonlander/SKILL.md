@@ -5,8 +5,32 @@ description: Build and flash firmware for the ZSA Moonlander Mark I rev B from s
 
 # Moonlander: build and flash
 
-Board is **rev B** (USB `3297:1972`). Confirmed against `revb/keyboard.json` —
-rev A is `3297:1969`. Always build the `revb` target.
+**Identify the revision before doing anything.** These boards look identical,
+share a model name, and take incompatible firmware. Read the USB id first:
+
+| Normal-mode id | Revision | Build target |
+|---|---|---|
+| `3297:1969` | rev A | `zsa/moonlander/reva` |
+| `3297:1972` | rev B | `zsa/moonlander/revb` |
+
+```sh
+for d in /sys/bus/usb/devices/*/; do
+  v=$(cat $d/idVendor 2>/dev/null); p=$(cat $d/idProduct 2>/dev/null)
+  [ "$v" = "3297" ] && echo "$v:$p $(cat $d/product 2>/dev/null)"
+done | sort -u
+```
+
+The two revisions differ in real hardware, not just a flag:
+
+| | rev A | rev B |
+|---|---|---|
+| Settings storage | 24LC128 EEPROM chip on I2C | emulated in MCU flash (wear levelling) |
+| Bootloader | STM32 ROM DFU, `0483:df11` | ZSA "ignition", `3297:2003`, occupying the first 8 KB |
+| Link address | `0x08000000` | `0x08002000` |
+
+Both use the same MCU, the same MCP23018 matrix scanning and the same LED
+layout, so a single `keymap.c` serves both -- but a rev B image flashed at rev
+A's address (or vice versa) will not boot.
 
 ## Build
 
@@ -53,34 +77,54 @@ unless that board is ever built here.
 
 ## Flashing
 
-**`wally-cli` does not work on this board.** The Arch package is v2.0.0 and only
-knows the older STM32 DFU id `0483:df11`. This Moonlander has ZSA's newer
-"ignition" bootloader, `3297:2003`, and wally exits before writing anything:
+Use `qmk flash`, for **both** revisions. It reads the bootloader type and the
+DFU arguments from the board definition, so the address cannot be got wrong by
+hand:
+
+```sh
+qmk flash -kb zsa/moonlander/reva -km ZQgpz    # or revb
+```
+
+Press the physical reset button first -- recessed, top-left of the left half,
+needs a paperclip. The board then enumerates as its bootloader (`0483:df11` on
+rev A, `3297:2003` on rev B) and `qmk flash` proceeds.
+
+If rev A reports `dfuERROR, status(10) = Device's firmware is corrupt` before
+writing, that is a stale status left in the bootloader. `qmk flash` clears it
+and continues; it is not a failure.
+
+### wally-cli
+
+Works on rev A, **fails on rev B**. The packaged v2.0.0 only knows the older
+STM32 DFU id and exits before writing anything:
 
 ```
 Error while extracting DFU Suffix: Invalid vendor or product id,
 expected 0x83:0x11 got 0x97:0x3
 ```
 
-Use `dfu-util`. Press the physical reset button (recessed, top-left of the left
-half — needs a paperclip), then:
+Nothing is written when this happens, so it is safe -- just use `qmk flash`.
 
-```
-dfu-util -d 3297:2003 -a 0 -s 0x08002000:leave -D zsa_moonlander_revb_ZQgpz.bin
-```
+### Flashing a loose binary
 
-`0x08002000` is not a guess: the bootloader advertises
-`@Internal Flash /0x08002000/124*0002Kg`, and the built ELF's `.vectors`
-section loads at exactly that address. Verify before flashing an unfamiliar
-binary:
+When flashing a `.bin` that did not come from `qmk compile`, verify the address
+rather than trusting it. The link address is baked into the image:
 
-```
+```sh
 arm-none-eabi-objdump -h <firmware>.elf | grep vectors
 ```
 
-The bootloader lives below `0x08002000` and is not exposed over DFU, so it
-cannot be overwritten. The physical reset button is hardware and works
-regardless of firmware state — recovery is always possible.
+It must match the bootloader's advertised region (`dfu-util -l`). Then:
+
+```sh
+# rev A
+dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D zsa_moonlander_reva_*.bin
+# rev B
+dfu-util -d 3297:2003 -a 0 -s 0x08002000:leave -D zsa_moonlander_revb_*.bin
+```
+
+Neither bootloader is reachable over DFU, and the physical reset button is
+hardware, so a bad application image is always recoverable.
 
 ## Permissions
 

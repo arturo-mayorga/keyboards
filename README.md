@@ -112,6 +112,21 @@ over USB instead. `scripts/keymap_cheatsheet.py` regenerates
 [the visual keymap](zmk-config-cornekbh/docs/keymap.html) from the keymap source,
 so the docs cannot drift from the firmware.
 
+## Tools
+
+```sh
+python3 tools/check-parity.py            # do the two boards still agree?
+python3 tools/moonlander-cheatsheet.py   # regenerate the Moonlander diagrams
+```
+
+`check-parity.py` parses both keymaps and compares combos, tap-hold timings and
+layer count, so parity is verified rather than assumed. Run it before
+committing a layout change.
+
+Visual keymaps: [Moonlander](docs/moonlander/keymap.html) ·
+[Corne](zmk-config-cornekbh/docs/keymap.html). Both are generated from their
+keymap sources and should be regenerated after any change.
+
 ## Layout
 
 ```
@@ -119,6 +134,6 @@ CLAUDE.md              context for Claude Code, scoped to this directory
 .claude/skills/        board procedures — parity, moonlander, corne
 layout/SPEC.md         the normative shared contract
 layout/divergences.md  intentional differences
-tools/                 toolchain setup, patches
+tools/                 parity check, diagram generator, toolchain setup, patches
 docs/                  reference images
 ```
