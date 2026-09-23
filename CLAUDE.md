@@ -26,3 +26,12 @@ contract and `layout/divergences.md` for differences that are intentional.
 
 Board-specific build and flash procedures are in `.claude/skills/`. They are
 scoped to this directory and do not load globally.
+
+The Moonlander builds and flashes through `make`, from
+`zsa-config-monnlander/`: `make build` compiles only if the keymap changed,
+`make flash` builds then writes to the attached board. Which revision it
+targets is read off the board's USB id rather than assumed — rev A and rev B
+take firmware linked at different addresses — so prefer these over a hand-built
+`qmk compile`/`dfu-util` invocation. `REV=reva` / `REV=revb` overrides the
+detection. The Corne has no local build; its firmware comes from GitHub
+Actions.

@@ -83,26 +83,39 @@ and the pointer bump here. Details, plus a ZMK→QMK translation table, in the
 
 ### Moonlander
 
-```sh
-qmk compile -kb zsa/moonlander/revb -km ZQgpz
-```
-
-Then press the physical reset button and:
+From `zsa-config-monnlander/`:
 
 ```sh
-dfu-util -d 3297:2003 -a 0 -s 0x08002000:leave -D zsa_moonlander_revb_ZQgpz.bin
+make build      # compile, if the keymap changed since last time
+make flash      # build if needed, then flash the attached board
 ```
+
+Then press the physical reset button when prompted. `make help` reports what it
+would do and for which revision.
+
+The Mark I ships as rev A and rev B. They look identical, share a model name,
+and take firmware linked at different addresses — an image written at the wrong
+one will not boot. So the Makefile reads the revision off the attached board's
+USB id rather than assuming (`tools/detect-revision.sh` in that repo, which
+recognises both the normal-mode and the bootloader-mode ids, since you may run
+`make flash` either side of pressing reset). `REV=reva` or `REV=revb` overrides
+it; with no board attached, builds fall back to rev B.
 
 Two things that are easy to lose a morning to:
 
 - **`wally-cli` cannot flash this board.** It expects the older STM32 DFU id
   `0483:df11`; this Moonlander has ZSA's ignition bootloader, `3297:2003`, and
-  wally bails out before writing. Use `dfu-util`.
+  wally bails out before writing. `make flash` goes through `qmk flash`, which
+  takes the DFU arguments from the board definition and so cannot get the
+  address wrong.
 - **GCC 16 breaks QMK's bootloader-jump assembly.** `tools/patches/` has the
   one-line constraint fix. It applies to the QMK clone, not to this repo, so a
-  `git pull` there silently reverts it and builds start failing again.
+  `git pull` there silently reverts it and builds start failing again. The
+  Makefile does not guard against this — the build simply fails again.
 
-First-time toolchain setup: [`tools/setup-toolchain.sh`](tools/setup-toolchain.sh).
+The build runs out of a QMK tree that the keymap directory is symlinked into;
+`make` says how to create that link if it is missing. First-time toolchain
+setup: [`tools/setup-toolchain.sh`](tools/setup-toolchain.sh).
 
 ### Corne
 

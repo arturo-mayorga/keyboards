@@ -1,6 +1,6 @@
 ---
 name: moonlander
-description: Build and flash firmware for the ZSA Moonlander Mark I rev B from source. Use when compiling the QMK keymap, flashing the board, recovering from a bad flash, or setting up the toolchain. Triggers: moonlander, qmk compile, dfu-util, wally, flash keyboard, bootloader.
+description: Build and flash firmware for the ZSA Moonlander Mark I rev B from source. Use when compiling the QMK keymap, flashing the board, recovering from a bad flash, or setting up the toolchain. Triggers: moonlander, make build, make flash, qmk compile, dfu-util, wally, flash keyboard, bootloader.
 ---
 
 # Moonlander: build and flash
@@ -8,17 +8,22 @@ description: Build and flash firmware for the ZSA Moonlander Mark I rev B from s
 **Identify the revision before doing anything.** These boards look identical,
 share a model name, and take incompatible firmware. Read the USB id first:
 
-| Normal-mode id | Revision | Build target |
-|---|---|---|
-| `3297:1969` | rev A | `zsa/moonlander/reva` |
-| `3297:1972` | rev B | `zsa/moonlander/revb` |
+| Normal-mode id | Bootloader-mode id | Revision | Build target |
+|---|---|---|---|
+| `3297:1969` | `0483:df11` | rev A | `zsa/moonlander/reva` |
+| `3297:1972` | `3297:2003` | rev B | `zsa/moonlander/revb` |
+
+`make` does this for itself, so the targets below never have to be told which
+revision to use. To ask directly:
 
 ```sh
-for d in /sys/bus/usb/devices/*/; do
-  v=$(cat $d/idVendor 2>/dev/null); p=$(cat $d/idProduct 2>/dev/null)
-  [ "$v" = "3297" ] && echo "$v:$p $(cat $d/product 2>/dev/null)"
-done | sort -u
+zsa-config-monnlander/tools/detect-revision.sh   # reva | revb | none | ambiguous
 ```
+
+It encodes the table above, both columns, because the board answers to a
+different id once reset has been pressed and it may be called either side of
+that. `0483:df11` is ST's generic DFU id rather than a ZSA one, so it only
+counts as a rev A Moonlander when no `3297` device is present at all.
 
 The two revisions differ in real hardware, not just a flag:
 
@@ -33,6 +38,20 @@ layout, so a single `keymap.c` serves both -- but a rev B image flashed at rev
 A's address (or vice versa) will not boot.
 
 ## Build
+
+From `zsa-config-monnlander/`, the Makefile is the normal entry point. It reads
+the revision off the attached board, so neither target has to be told which one
+to target, and it skips the compile when the keymap has not changed:
+
+```
+make build      # compile, if the keymap changed since last time
+make flash      # build if needed, then flash the attached board
+make help       # what it would do right now, and for which revision
+make clean      # discard this keymap's build tree, both revisions
+```
+
+With no board attached it falls back to rev B; `REV=reva` / `REV=revb`
+overrides the detection. What it runs underneath is:
 
 ```
 qmk compile -kb zsa/moonlander/revb -km ZQgpz
@@ -77,7 +96,8 @@ unless that board is ever built here.
 
 ## Flashing
 
-Use `qmk flash`, for **both** revisions. It reads the bootloader type and the
+`make flash` does this for whichever revision is attached. Underneath, and when
+running it by hand: use `qmk flash`, for **both** revisions. It reads the bootloader type and the
 DFU arguments from the board definition, so the address cannot be got wrong by
 hand:
 

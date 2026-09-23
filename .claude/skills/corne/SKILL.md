@@ -27,7 +27,9 @@ invalidates them. The QMK side declares the same combos by *keycode* — see
 ## Building
 
 Firmware builds in GitHub Actions from `build.yaml`; download the artifacts and
-copy the `.uf2` to each half in bootloader mode. There is no local build here.
+copy the `.uf2` to each half in bootloader mode. There is no local build here,
+so there is no `make build`/`make flash` as on the Moonlander — the asymmetry
+is the remote build, not an oversight.
 
 For quick keymap edits without a firmware build, ZMK Studio works over USB —
 see the repo README. Studio is enabled via `CONFIG_ZMK_STUDIO=y` and unlocked

@@ -15,7 +15,8 @@ difference is recorded in `layout/divergences.md`.
 2. Regenerate its cheat sheet: `python3 scripts/keymap_cheatsheet.py`.
 3. Mirror into `zsa-config-monnlander/zsa_moonlander_layout_source/keymap.c`.
 4. Update `layout/SPEC.md` if the contract itself changed.
-5. Build and flash the Moonlander (see the `moonlander` skill).
+5. Build and flash the Moonlander: `make flash` in `zsa-config-monnlander/`
+   (see the `moonlander` skill).
 6. Commit each submodule, then commit the pointer bump here — that parent
    commit is what records the two configs as a matched pair.
 
@@ -49,7 +50,9 @@ difference is recorded in `layout/divergences.md`.
   This is why they survive the move to a different physical grid — but it also
   means a QMK combo follows the letter wherever it goes.
 - **The Moonlander needs a revision.** `-kb zsa/moonlander` fails; use
-  `zsa/moonlander/revb`.
+  `zsa/moonlander/revb`. `make` supplies it, read off the attached board, which
+  is why it is the safer way to flash — rev A and rev B link at different
+  addresses and the wrong image will not boot.
 - **Do not blindly copy layer numbers from an Oryx export.** Oryx generates
   `TO()` toggles; this layout is momentary throughout.
 
